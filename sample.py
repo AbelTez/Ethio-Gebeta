@@ -1,285 +1,250 @@
-# -------- STATE --------
 balance = 100
-current_menu = "MAIN"
-page = 0
-history = []
-is_gift_mode = False
-
-# -------- PACKAGE DATA --------
-
-packages = {
-    "INTERNET": {
-        "DAILY": [("100MB", 5), ("200MB", 10), ("300MB", 15)],
-        "WEEKLY": [("500MB", 15), ("1GB", 22)],
-        "MONTHLY": [("2GB", 35), ("4GB", 60)]
-    },
-    "VOICE": {
-        "DAILY": [("10 Min", 3), ("30 Min", 8), ("60 Min", 15)],
-        "WEEKLY": [("120 Min", 18), ("300 Min", 35)],
-        "MONTHLY": [("1000 Min", 80), ("2000 Min", 140)]
-    },
-    "SOCIAL": {
-        "DAILY": [("WhatsApp + Telegram", 5), ("All Apps", 10)],
-        "WEEKLY": [("Social Pack Small", 20), ("Social Pack Large", 35)],
-        "MONTHLY": [("Unlimited Social", 70), ("Premium Social", 120)]
-    }
-}
-
-# -------- HELPERS --------
-
-def show(options, page):
-    start = page * 4
-    end = start + 4
-
-    i = start
-    count = 1
-
-    while i < end and i < len(options):
-        print(str(count) + ". " + options[i])
-        i += 1
-        count += 1
-
-    if len(options) > end:
-        print("#. Next")
-
-    if len(history) > 0:
-        print("##. Back")
-
-    if current_menu != "MAIN":
-        print("**. Main Menu")
 
 
-def get_input():
-    print("Enter: ", end="", flush=True)
-    return input().strip()
+# -------- Helpers --------
+def is_valid_phone(phone):
+    return (phone.startswith("09") and len(phone) == 10 and phone.isdigit()) or \
+           (phone.startswith("2519") and len(phone) == 12 and phone.isdigit())
 
 
-def invalid():
-    print("Invalid input, try again.")
-
-
-def is_number(s):
-    if s == "":
-        return False
-    for c in s:
-        if c < '0' or c > '9':
-            return False
-    return True
-
-
-def valid_phone(p):
-    if len(p) != 10:
-        return False
-    if not (p[0] == '0' and p[1] == '9'):
-        return False
-    for c in p:
-        if c < '0' or c > '9':
-            return False
-    return True
-
-
-def success(name, price):
+def confirm_and_process(price, desc, mode):
     global balance
-    balance -= price
-    print("\nYou have successfully purchased " + name + " for Br." + str(price))
-    print("Remaining balance: Br." + str(balance))
-    print("Thank you for using ethio gebeta.")
-    exit()
 
-
-def handle_purchase(name, price):
-    global is_gift_mode, balance
-
-    if balance < price:
-        print("Insufficient balance.")
-        return
-
-    # -------- GIFT FLOW --------
-    if is_gift_mode:
+    if mode == "gift":
         while True:
-            phone = input("Enter receiver phone (09XXXXXXXX): ")
-            if not valid_phone(phone):
-                print("Invalid phone number.")
-                continue
-            break
-
-    confirm = input("Enter 1 to confirm: ")
-
-    if confirm == "1":
-        success(name, price)
+            phone = input("Enter receiver phone: ")
+            if is_valid_phone(phone):
+                break
+        print(f"You chose {desc} for {phone}")
     else:
-        print("Cancelled.")
+        print(f"You chose {desc}")
+
+    c = input("Enter 1 to confirm, any other to cancel: ")
+    if c == "1":
+        if balance < price:
+            print("Insufficient balance")
+            exit()
+        balance -= price
+        print(f"Success! Remaining balance: {balance}")
+        exit()
+    else:
+        exit()
 
 
-# -------- MAIN LOOP --------
+# -------- Menus --------
+def daily_menu(mode, category):
+    while True:
+        if category == "internet":
+            print("1. 5 birr for 100 Mb")
+            print("2. 10 birr for 200 Mb")
+            print("3. 15 birr for 300 Mb")
+        elif category == "voice":
+            print("1. 5 birr for 20 Mn")
+            print("2. 10 birr for 42 Mn")
+            print("3. 15 birr for 65 Mn")
+        elif category == "social":
+            print("1. 20 birr for 1.2 Gb TG")
+            print("2. 39 birr for 2 Gb FB/YT")
+        elif category == "combo":
+            print("1. 15 birr for 20 Mn + 200 Mb")
+            print("2. 25 birr for 30 Mn + 420 Mb")
 
-while True:
+        print("*. Back")
+        c = input("Enter: ")
 
-    # -------- MAIN MENU --------
-    if current_menu == "MAIN":
-        options = ["Internet", "Voice", "Social Media"]
+        if c == "*":
+            return
 
-        print("\n*999#")
-        show(options, page)
+        mapping = {
+            ("internet", "1"): (5, "100Mb"),
+            ("internet", "2"): (10, "200Mb"),
+            ("internet", "3"): (15, "300Mb"),
 
-        choice = get_input()
+            ("voice", "1"): (5, "20Min"),
+            ("voice", "2"): (10, "42Min"),
+            ("voice", "3"): (15, "65Min"),
 
-        if choice == "#":
-            page += 1
-            continue
-        elif choice == "##":
-            page = 0
-            continue
-        elif choice == "**":
-            current_menu = "MAIN"
-            page = 0
-            continue
+            ("social", "1"): (20, "1.2GB TG"),
+            ("social", "2"): (39, "2GB FB/YT"),
 
-        if not is_number(choice):
-            invalid()
-            continue
+            ("combo", "1"): (15, "20Min+200Mb"),
+            ("combo", "2"): (25, "30Min+420Mb"),
+        }
 
-        index = int(choice) - 1 + page * 4
+        if (category, c) in mapping:
+            price, desc = mapping[(category, c)]
+            confirm_and_process(price, desc, mode)
 
-        if index == 0:
-            history.append(("MAIN", page))
-            current_menu = "INTERNET"
-        elif index == 1:
-            history.append(("MAIN", page))
-            current_menu = "VOICE"
-        elif index == 2:
-            history.append(("MAIN", page))
-            current_menu = "SOCIAL"
+
+def weekly_menu(mode, category):
+    while True:
+        if category == "internet":
+            print("1. 50 birr for 650 Mb")
+            print("2. 70 birr for 1 Gb")
+            print("3. 140 birr for 2.5 Gb")
+        elif category == "voice":
+            print("1. 25 birr for 70 Mn")
+            print("2. 35 birr for 110 Mn")
+            print("3. 45 birr for 145 Mn")
+        elif category == "social":
+            print("1. 80 birr for 3 Gb TG")
+            print("2. 100 birr for 4 Gb FB/YT")
+        elif category == "combo":
+            print("1. 30 birr for 40 Mn + 100 Mb")
+            print("2. 50 birr for 55 Mn + 320 Mb")
+
+        print("*. Back")
+        c = input("Enter: ")
+
+        if c == "*":
+            return
+
+        mapping = {
+            ("internet", "1"): (50, "650Mb"),
+            ("internet", "2"): (70, "1GB"),
+            ("internet", "3"): (140, "2.5GB"),
+
+            ("voice", "1"): (25, "70Min"),
+            ("voice", "2"): (35, "110Min"),
+            ("voice", "3"): (45, "145Min"),
+
+            ("social", "1"): (80, "3GB TG"),
+            ("social", "2"): (100, "4GB FB/YT"),
+
+            ("combo", "1"): (30, "40Min+100Mb"),
+            ("combo", "2"): (50, "55Min+320Mb"),
+        }
+
+        if (category, c) in mapping:
+            price, desc = mapping[(category, c)]
+            confirm_and_process(price, desc, mode)
+
+
+def monthly_menu(mode, category):
+    while True:
+        if category == "internet":
+            print("1. 82 birr for 1 Gb")
+            print("2. 150 birr for 2 Gb")
+            print("3. 280 birr for 4 Gb")
+        elif category == "voice":
+            print("1. 82 birr for 1 Mn")
+            print("2. 150 birr for 2 Mn")
+            print("3. 280 birr for 4 Mn")
+        elif category == "social":
+            print("1. 110 birr for 4 Gb TG")
+            print("2. 300 birr for 10 Gb FB/YT")
+        elif category == "combo":
+            print("1. 80 birr for 120 Mn + 850 Mb")
+            print("2. 120 birr for 230 Mn + 1 Gb")
+
+        print("*. Back")
+        c = input("Enter: ")
+
+        if c == "*":
+            return
+
+        mapping = {
+            ("internet", "1"): (82, "1GB"),
+            ("internet", "2"): (150, "2GB"),
+            ("internet", "3"): (280, "4GB"),
+
+            ("voice", "1"): (82, "1Min"),
+            ("voice", "2"): (150, "2Min"),
+            ("voice", "3"): (280, "4Min"),
+
+            ("social", "1"): (110, "4GB TG"),
+            ("social", "2"): (300, "10GB FB/YT"),
+
+            ("combo", "1"): (80, "120Min+850Mb"),
+            ("combo", "2"): (120, "230Min+1GB"),
+        }
+
+        if (category, c) in mapping:
+            price, desc = mapping[(category, c)]
+            confirm_and_process(price, desc, mode)
+
+
+def package_menu(mode, category):
+    while True:
+        print("1. Daily")
+        print("2. Weekly")
+        print("3. Monthly")
+        print("*. Back")
+        print("**. Main Menu")
+        c = input("Enter: ")
+
+        if c == "1":
+            daily_menu(mode, category)
+        elif c == "2":
+            weekly_menu(mode, category)
+        elif c == "3":
+            monthly_menu(mode, category)
+        elif c == "*":
+            return
+        elif c == "**":
+            main_menu()
+
+
+def category_entry(category):
+    while True:
+        print("1. For Self")
+        print("2. For Gift")
+        print("**. Main Menu")
+        c = input("Enter: ")
+
+        if c == "1":
+            package_menu("self", category)
+        elif c == "2":
+            package_menu("gift", category)
+        elif c == "**":
+            main_menu()
+
+
+def telebirr_menu():
+    while True:
+        print("Welcome to Telebirr")
+        print("0. Change PIN")
+        print("1. Financial Service")
+        print("2. Send Money")
+        print("3. Airtime")
+        print("00. Main Menu")
+        c = input("Enter: ")
+
+        if c == "00":
+            return
         else:
-            invalid()
-            continue
-
-        page = 0
-        continue
+            print("Service not yet available. We will fix soon.")
 
 
-    # -------- SERVICE MENU --------
-    elif current_menu in ["INTERNET", "VOICE", "SOCIAL"]:
-        options = ["For Self", "For Gift"]
+def main_menu():
+    while True:
+        print("Welcome to ethiotelecom")
+        print("1. Internet")
+        print("2. Voice")
+        print("3. Social Media")
+        print("#. Next")
+        c = input("Enter: ")
 
-        print("\n" + current_menu)
-        show(options, page)
+        if c == "1":
+            category_entry("internet")
+        elif c == "2":
+            category_entry("voice")
+        elif c == "3":
+            category_entry("social")
+        elif c == "#":
+            while True:
+                print("4. Voice + Internet")
+                print("5. Telebirr")
+                print("##. Previous")
+                c2 = input("Enter: ")
 
-        choice = get_input()
-
-        if choice == "##":
-            current_menu, page = history.pop()
-            continue
-        elif choice == "**":
-            current_menu = "MAIN"
-            page = 0
-            continue
-
-        if not is_number(choice):
-            invalid()
-            continue
-
-        if choice == "1":
-            is_gift_mode = False
-        elif choice == "2":
-            is_gift_mode = True
-        else:
-            invalid()
-            continue
-
-        history.append((current_menu, page))
-        current_menu = current_menu + "_SELF"
-        page = 0
-        continue
+                if c2 == "4":
+                    category_entry("combo")
+                elif c2 == "5":
+                    telebirr_menu()
+                elif c2 == "##":
+                    break
 
 
-    # -------- PACKAGE TYPE MENU --------
-    elif current_menu.endswith("_SELF"):
-        options = ["Daily", "Weekly", "Monthly"]
-
-        print("\n" + current_menu)
-        show(options, page)
-
-        choice = get_input()
-
-        if choice == "##":
-            current_menu, page = history.pop()
-            continue
-        elif choice == "**":
-            current_menu = "MAIN"
-            page = 0
-            continue
-
-        if not is_number(choice):
-            invalid()
-            continue
-
-        if choice == "1":
-            current_menu = current_menu + "_DAILY"
-        elif choice == "2":
-            current_menu = current_menu + "_WEEKLY"
-        elif choice == "3":
-            current_menu = current_menu + "_MONTHLY"
-        else:
-            invalid()
-            continue
-
-        page = 0
-        continue
-
-
-    # -------- PACKAGE LIST --------
-    elif (
-        current_menu.endswith("_DAILY") or
-        current_menu.endswith("_WEEKLY") or
-        current_menu.endswith("_MONTHLY")
-    ):
-
-        service = current_menu.split("_")[0]
-
-        if current_menu.endswith("_DAILY"):
-            period = "DAILY"
-        elif current_menu.endswith("_WEEKLY"):
-            period = "WEEKLY"
-        else:
-            period = "MONTHLY"
-
-        data = packages[service][period]
-
-        options = []
-        i = 0
-        while i < len(data):
-            options.append(data[i][0] + " Br." + str(data[i][1]))
-            i += 1
-
-        print("\nPackages")
-        show(options, page)
-
-        choice = get_input()
-
-        if choice == "#":
-            page += 1
-            continue
-        elif choice == "##":
-            current_menu, page = history.pop()
-            continue
-        elif choice == "**":
-            current_menu = "MAIN"
-            page = 0
-            continue
-
-        if not is_number(choice):
-            invalid()
-            continue
-
-        index = int(choice) - 1 + page * 4
-
-        if index < 0 or index >= len(data):
-            invalid()
-            continue
-
-        name = data[index][0]
-        price = data[index][1]
-
-        handle_purchase(name, price)
-        continue
+# -------- Start --------
+main_menu()
